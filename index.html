@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMSSTUDIO PANEL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --glass-bg: rgba(255,255,255,0.07);
+    --glass-border: rgba(255,255,255,0.13);
+    --glass-bg-mini: rgba(255,255,255,0.05);
+    --glass-border-mini: rgba(255,255,255,0.10);
+    --text-primary: rgba(255,255,255,0.88);
+    --text-secondary: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.30);
+    --text-label: rgba(255,255,255,0.40);
+    --green: #34d399;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --teal: #2dd4bf;
+    --orange: #fb923c;
+    --amber: #fbbf24;
+    --red: #f87171;
+  }
+
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #050508;
+    min-height: 100vh;
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  /* ── Background Orbs ── */
+  .bg-orb { position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.22; pointer-events: none; z-index: 0; }
+  .orb1 { width: 600px; height: 600px; background: radial-gradient(circle, #3b6fd4, transparent); top: -150px; left: -150px; }
+  .orb2 { width: 450px; height: 450px; background: radial-gradient(circle, #7c3aed, transparent); top: 250px; right: -100px; }
+  .orb3 { width: 400px; height: 400px; background: radial-gradient(circle, #0e7490, transparent); bottom: -50px; left: 35%; }
+
+  /* ── Layout ── */
+  .dashboard { position: relative; z-index: 1; padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+  .header-brand { font-size: 12px; color: var(--text-muted); letter-spacing: 0.3px; }
+  .header-brand strong { display: block; font-size: 17px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.6px; margin-top: 3px; }
+  .header-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+  .status-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; box-shadow: 0 0 8px rgba(52,211,153,0.6); animation: pulse-dot 2s ease-in-out infinite; flex-shrink: 0; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;box-shadow:0 0 6px rgba(52,211,153,0.6)}50%{opacity:0.6;box-shadow:0 0 14px rgba(52,211,153,0.8)} }
+
+  .header-right { text-align: right; }
+  .live-clock { font-size: 26px; font-weight: 300; color: var(--text-primary); letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .live-date { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .weather-info { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Glass Card ── */
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+    pointer-events: none;
+  }
+  .glass-card:hover { border-color: rgba(255,255,255,0.22); }
+
+  .card-label { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 16px; }
+
+  /* ── Main Grid ── */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ── Stat Row ── */
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .stat-label { font-size: 12px; color: var(--text-label); }
+  .stat-val { font-size: 13px; font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .val-ok { color: var(--green); }
+  .val-warn { color: var(--amber); }
+  .val-hot { color: var(--orange); }
+  .val-danger { color: var(--red); }
+  .val-blue { color: var(--blue); }
+
+  /* ── Progress Bar ── */
+  .prog-wrap { background: rgba(255,255,255,0.08); border-radius: 100px; height: 5px; overflow: hidden; margin: 4px 0 3px; }
+  .prog-fill { height: 100%; border-radius: 100px; position: relative; transition: width 1s ease; }
+  .prog-fill::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,0.3)); border-radius: 100px; }
+  .fill-blue   { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+  .fill-purple { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+  .fill-teal   { background: linear-gradient(90deg, #14b8a6, #2dd4bf); }
+  .fill-orange { background: linear-gradient(90deg, #f97316, #fb923c); }
+  .fill-green  { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .fill-red    { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .prog-labels { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-muted); margin-bottom: 10px; }
+
+  /* ── CPU Info ── */
+  .cpu-chip { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); }
+  .cpu-chip .chip-name { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+  /* ── Uptime badge ── */
+  .uptime-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(52,211,153,0.10);
+    border: 1px solid rgba(52,211,153,0.22);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 12px; color: #6ee7b7; font-weight: 500;
+    margin-top: 10px;
+  }
+
+  /* ── Network Chart ── */
+  .net-speeds { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .net-speed-item { text-align: center; }
+  .net-speed-val { font-size: 20px; font-weight: 300; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .net-speed-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .legend-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  .chart-area { height: 60px; display: flex; align-items: flex-end; gap: 2px; margin: 8px 0; }
+  .chart-bar-group { flex: 1; display: flex; flex-direction: column; gap: 2px; align-items: stretch; }
+  .chart-bar { border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.4s ease; }
+  .bar-up { background: rgba(59,130,246,0.55); }
+  .bar-dn { background: rgba(139,92,246,0.55); }
+
+  .net-totals { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+  .net-totals span b { color: var(--text-secondary); font-weight: 500; }
+
+  /* ── Process List ── */
+  .proc-header { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .proc-row { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); gap: 8px; }
+  .proc-row:last-child { border-bottom: none; }
+  .proc-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .proc-name { flex: 1; font-size: 12px; color: var(--text-secondary); }
+  .proc-cpu-val { width: 38px; text-align: right; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .proc-mem-val { width: 52px; text-align: right; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .proc-mini { width: 48px; height: 4px; background: rgba(255,255,255,0.07); border-radius: 100px; overflow: hidden; }
+  .proc-mini-fill { height: 100%; border-radius: 100px; }
+
+  /* ── Bottom Row ── */
+  .bottom-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
+
+  .mini-card {
+    background: var(--glass-bg-mini);
+    border: 1px solid var(--glass-border-mini);
+    border-radius: 16px;
+    padding: 18px;
+    position: relative; overflow: hidden;
+  }
+  .mini-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent); }
+  .mini-card-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.1px; margin-bottom: 10px; }
+  .mini-card-val { font-size: 28px; font-weight: 300; color: var(--text-primary); letter-spacing: -1px; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .mini-card-sub { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── Battery Bar ── */
+  .battery-icon { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+  .battery-body { width: 32px; height: 16px; border: 1.5px solid rgba(255,255,255,0.3); border-radius: 3px; padding: 2px; position: relative; }
+  .battery-body::after { content:''; position:absolute; right:-5px; top:50%; transform:translateY(-50%); width:3px; height:7px; background: rgba(255,255,255,0.3); border-radius: 0 2px 2px 0; }
+  .battery-fill-inner { height: 100%; border-radius: 1.5px; transition: width 1s; }
+
+  /* ── Disk breakdown ── */
+  .disk-list { margin-top: 6px; }
+  .disk-item { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); padding: 4px 0; }
+  .disk-item b { color: var(--text-secondary); font-weight: 500; }
+
+  /* ── Animations ── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  .glass-card { animation: fadeUp 0.55s ease both; }
+  .mini-card   { animation: fadeUp 0.55s ease both; }
+  .main-grid .glass-card:nth-child(1) { animation-delay: 0.05s; }
+  .main-grid .glass-card:nth-child(2) { animation-delay: 0.15s; }
+  .main-grid .glass-card:nth-child(3) { animation-delay: 0.25s; }
+  .main-grid .glass-card:nth-child(4) { animation-delay: 0.35s; }
+  .bottom-row .mini-card:nth-child(1) { animation-delay: 0.40s; }
+  .bottom-row .mini-card:nth-child(2) { animation-delay: 0.50s; }
+  .bottom-row .mini-card:nth-child(3) { animation-delay: 0.60s; }
+  .bottom-row .mini-card:nth-child(4) { animation-delay: 0.70s; }
+
+  /* ── Loading overlay ── */
+  #loading {
+    position: fixed; inset: 0; z-index: 999;
+    background: #050508;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px;
+    transition: opacity 0.5s;
+  }
+  #loading .load-title { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); letter-spacing: 1px; text-transform: uppercase; }
+  #loading .load-sub { font-size: 12px; color: rgba(255,255,255,0.3); }
+  .spinner { width: 32px; height: 32px; border: 2px solid rgba(255,255,255,0.1); border-top-color: rgba(255,255,255,0.6); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Error state ── */
+  .err-banner { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #fca5a5; margin-bottom: 14px; display: none; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .bottom-row { grid-template-columns: 1fr 1fr; }
+    .dashboard { padding: 16px; }
+  }
+  @media (max-width: 480px) {
+    .bottom-row { grid-template-columns: 1fr; }
+    .header { flex-direction: column; gap: 12px; }
+    .header-right { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background orbs -->
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="bg-orb orb3"></div>
+
+<!-- Loading overlay -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-title">AMSSTUDIO PANEL</div>
+  <div class="load-sub" id="load-msg">Connecting to server...</div>
+</div>
+
+<div class="dashboard" id="app" style="opacity:0;transition:opacity 0.5s;">
+
+  <!-- Error banner -->
+  <div class="err-banner" id="err-banner">
+    ⚠ API backend tidak tersambung. Menampilkan data demo. Pastikan backend berjalan di port 5000.
+  </div>
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div>
+      <div class="header-brand">Welcome to <strong>AMSSTUDIO PANEL</strong></div>
+      <div class="header-meta">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Online</span>
+        &nbsp;·&nbsp;
+        <span id="hostname-display">amsstudio-srv</span>
+        &nbsp;·&nbsp;
+        <span id="os-display">Ubuntu 26.04</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-clock" id="live-clock">--:--:--</div>
+      <div class="live-date" id="live-date">--</div>
+      <div class="weather-info">Cikampek, West Java &nbsp;·&nbsp; 27°C Clear</div>
+    </div>
+  </div>
+
+  <!-- ── Main Grid ── -->
+  <div class="main-grid">
+
+    <!-- CPU Card -->
+    <div class="glass-card">
+      <div class="card-label">Processor</div>
+      <div class="cpu-chip">
+        <div class="chip-name" id="cpu-model">AMD A6-9225 RADEON R4, 5 COMPUTE CORES 2C+3G</div>
+        <div style="margin-top:4px;font-size:10.5px;">
+          <span id="cpu-cores">2</span> physical cores &nbsp;·&nbsp; <span id="cpu-freq">2.60 GHz</span> &nbsp;·&nbsp; x86_64
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <span class="stat-label">CPU Usage</span>
+        <span class="stat-val val-ok" id="cpu-usage-val">--</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill fill-blue" id="cpu-usage-bar" style="width:0%"></div></div>
+      <div class="prog-labels"><span>0%</span><span id="cpu-usage-mid">--</span><span>100%</span></div>
+
+      <div class="stat-row">
+        <span class="stat-label">Temperature</span>
+        <span class="stat-val val-hot" id="cpu-temp-val">--</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill fill-orange" id="cpu-temp-bar" style="width:0%"></div></div>
+      <div class="prog-labels"><span>0°C</span><span id="cpu-temp-mid">--</span><span>100°C</span></div>
+
+      <div class="stat-row">
+        <span class="stat-label">Load Average</span>
+        <span class="stat-val" id="cpu-load">-- / -- / --</span>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="uptime-badge">
+          <span class="status-dot" style="width:5px;height:5px;"></span>
+          <span id="uptime-display">Uptime: --</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory & Storage Card -->
+    <div class="glass-card">
+      <div class="card-label">Memory & Storage</div>
+
+      <div class="stat-row">
+        <span class="stat-label">RAM Usage</span>
+        <span class="stat-val" id="ram-val">--</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill fill-purple" id="ram-bar" style="width:0%"></div></div>
+      <div class="prog-labels"><span>0%</span><span id="ram-pct">--%</span><span>100%</span></div>
+
+      <div class="stat-row">
+        <span class="stat-label">Swap</span>
+        <span class="stat-val" id="swap-val">--</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill fill-blue" id="swap-bar" style="width:0%"></div></div>
+      <div class="prog-labels"><span>0%</span><span id="swap-pct">--%</span><span>100%</span></div>
+
+      <div class="stat-row">
+        <span class="stat-label">Disk Usage</span>
+        <span class="stat-val" id="disk-val">--</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill fill-teal" id="disk-bar" style="width:0%"></div></div>
+      <div class="prog-labels"><span>0%</span><span id="disk-pct">--%</span><span>100%</span></div>
+
+      <div class="stat-row">
+        <span class="stat-label">Disk Temperature</span>
+        <span class="stat-val val-warn" id="disk-temp-val">--</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill fill-orange" id="disk-temp-bar" style="width:0%"></div></div>
+      <div class="prog-labels"><span>0°C</span><span id="disk-temp-mid">--</span><span>80°C</span></div>
+    </div>
+
+    <!-- Network Card -->
+    <div class="glass-card">
+      <div class="card-label">Network &nbsp;<span id="net-iface" style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.2);">wlp1s0</span></div>
+
+      <div class="net-speeds">
+        <div class="net-speed-item">
+          <div class="net-speed-val val-blue" id="net-up-val">--</div>
+          <div class="net-speed-label"><span class="legend-dot" style="background:#60a5fa"></span> Upload</div>
+        </div>
+        <div class="net-speed-item" style="text-align:center">
+          <div style="font-size:11px;color:var(--text-muted)">Local IP</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-top:2px;" id="local-ip">--</div>
+        </div>
+        <div class="net-speed-item" style="text-align:right">
+          <div class="net-speed-val" style="color:#a78bfa;" id="net-dn-val">--</div>
+          <div class="net-speed-label" style="justify-content:flex-end"><span class="legend-dot" style="background:#a78bfa"></span> Download</div>
+        </div>
+      </div>
+
+      <div class="chart-area" id="net-chart"></div>
+
+      <div class="net-totals">
+        <span>Total ↑ <b id="net-total-up">--</b></span>
+        <span>Total ↓ <b id="net-total-dn">--</b></span>
+        <span id="net-speed-cap">--</span>
+      </div>
+    </div>
+
+    <!-- Process Card -->
+    <div class="glass-card">
+      <div class="card-label">Top Processes</div>
+      <div class="proc-header">
+        <span style="flex:1">Process</span>
+        <span style="width:38px;text-align:right">CPU</span>
+        <span style="width:52px;text-align:right">Memory</span>
+        <span style="width:56px;text-align:right">Bar</span>
+      </div>
+      <div id="proc-list">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+  </div><!-- /main-grid -->
+
+  <!-- ── Bottom Row ── -->
+  <div class="bottom-row">
+
+    <!-- Uptime -->
+    <div class="mini-card">
+      <div class="mini-card-label">Uptime</div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div>
+          <div class="mini-card-val" id="uptime-big">--</div>
+          <div class="mini-card-sub" id="uptime-sub">-- · --</div>
+        </div>
+        <div style="margin-left:auto;">
+          <div style="width:38px;height:38px;border-radius:50%;border:2px solid rgba(52,211,153,0.35);display:flex;align-items:center;justify-content:center;">
+            <div style="width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(52,211,153,0.6);animation:pulse-dot 2s infinite;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Battery -->
+    <div class="mini-card">
+      <div class="mini-card-label">Battery</div>
+      <div class="battery-icon">
+        <div class="battery-body">
+          <div class="battery-fill-inner fill-green" id="bat-fill" style="width:99%"></div>
+        </div>
+        <span style="font-size:11px;color:var(--green);" id="bat-status">Charging</span>
+      </div>
+      <div class="mini-card-val" id="bat-pct">99%</div>
+      <div class="mini-card-sub" id="bat-sub">AC Connected</div>
+    </div>
+
+    <!-- System Info -->
+    <div class="mini-card">
+      <div class="mini-card-label">System</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.9;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">OS</span>
+          <span id="sys-os" style="text-align:right">Ubuntu 26.04 LTS</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">Kernel</span>
+          <span id="sys-kernel" style="text-align:right">Linux 7.0.0-14-generic</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">Hostname</span>
+          <span id="sys-host" style="text-align:right">amsstudio-srv</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">Packages</span>
+          <span id="sys-pkgs" style="text-align:right">749 (dpkg)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Display / GPU -->
+    <div class="mini-card">
+      <div class="mini-card-label">Display & GPU</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.9;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">GPU</span>
+          <span id="gpu-name" style="text-align:right;font-size:11px">AMD Radeon R4</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">Resolution</span>
+          <span id="display-res" style="text-align:right">1366×768</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">Refresh</span>
+          <span id="display-hz" style="text-align:right">60 Hz</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="color:var(--text-muted)">Shell</span>
+          <span id="sys-shell" style="text-align:right">bash 5.3.9</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /bottom-row -->
+
+</div><!-- /dashboard -->
+
+<script>
+/* ============================================================
+   CONFIG — Ubah sesuai setup kamu
+   ============================================================ */
+const CONFIG = {
+  // URL backend API (jalankan server.py di bawah)
+  // Contoh: 'http://192.168.1.8:5000/api/stats'
+  // Atau pakai reverse proxy 1Panel: 'http://localhost:5000/api/stats'
+  apiUrl: '/api/stats',
+
+  // Refresh interval (ms)
+  refreshInterval: 3000,
+
+  // Demo mode: tampilkan data simulasi jika API gagal
+  demoMode: true,
+
+  // Nama server yang tampil di header
+  serverName: 'AMSSTUDIO PANEL',
+  location: 'Cikampek, West Java · 27°C Clear'
+};
+
+/* ============================================================
+   DEMO DATA (fallback jika API tidak tersedia)
+   ============================================================ */
+function getDemoData() {
+  const now = Date.now();
+  return {
+    cpu: {
+      model: 'AMD A6-9225 RADEON R4, 5 COMPUTE CORES 2C+3G',
+      cores: 2,
+      freq_ghz: 2.60,
+      usage_pct: 15 + Math.random() * 25,
+      temp_c: 52 + Math.random() * 10,
+      load_avg: [
+        +(Math.random() * 0.8).toFixed(2),
+        +(Math.random() * 0.6).toFixed(2),
+        +(Math.random() * 0.5).toFixed(2)
+      ]
+    },
+    memory: {
+      used_mib: 700 + Math.random() * 100,
+      total_mib: 10896,
+      swap_used_mib: 0,
+      swap_total_mib: 0
+    },
+    disk: {
+      used_gib: 4.16,
+      total_gib: 12.49,
+      temp_c: 32 + Math.random() * 5,
+      mount: '/',
+      fs: 'ext4'
+    },
+    network: {
+      iface: 'wlp1s0',
+      local_ip: '192.168.1.8/24',
+      up_bps: (800000 + Math.random() * 2000000),
+      dn_bps: (2000000 + Math.random() * 5000000),
+      total_up_bytes: 2481856102,
+      total_dn_bytes: 19831529472
+    },
+    battery: {
+      pct: 99,
+      status: 'Charging',
+      plugged: true
+    },
+    system: {
+      hostname: 'raydenfly',
+      os: 'Ubuntu 26.04 LTS',
+      kernel: 'Linux 7.0.0-14-generic',
+      uptime_sec: Math.floor((now - startTime) / 1000) + 7800,
+      packages: '749 (dpkg)',
+      shell: 'bash 5.3.9',
+      gpu: 'AMD Radeon R4 [Integrated]',
+      display_res: '1366×768',
+      display_hz: '60'
+    },
+    processes: [
+      { name: 'node',     cpu: 8.2,  mem_mb: 312 },
+      { name: 'nginx',    cpu: 2.1,  mem_mb: 48  },
+      { name: 'postgres', cpu: 1.8,  mem_mb: 96  },
+      { name: 'docker',   cpu: 5.7 + Math.random()*2,  mem_mb: 158 },
+      { name: 'sshd',     cpu: 0.4,  mem_mb: 18  }
+    ]
+  };
+}
+
+/* ============================================================
+   NETWORK CHART HISTORY
+   ============================================================ */
+const CHART_BARS = 20;
+const upHistory = new Array(CHART_BARS).fill(0);
+const dnHistory = new Array(CHART_BARS).fill(0);
+
+function initChart() {
+  const el = document.getElementById('net-chart');
+  el.innerHTML = '';
+  for (let i = 0; i < CHART_BARS; i++) {
+    const g = document.createElement('div');
+    g.className = 'chart-bar-group';
+    const bu = document.createElement('div');
+    bu.className = 'chart-bar bar-up';
+    bu.style.height = '2px';
+    const bd = document.createElement('div');
+    bd.className = 'chart-bar bar-dn';
+    bd.style.height = '2px';
+    g.appendChild(bu); g.appendChild(bd);
+    el.appendChild(g);
+  }
+}
+
+function updateChart(upBps, dnBps) {
+  upHistory.push(upBps); upHistory.shift();
+  dnHistory.push(dnBps); dnHistory.shift();
+  const maxVal = Math.max(...upHistory, ...dnHistory, 1);
+  const groups = document.querySelectorAll('#net-chart .chart-bar-group');
+  groups.forEach((g, i) => {
+    const upH = Math.max(2, Math.round((upHistory[i] / maxVal) * 28));
+    const dnH = Math.max(2, Math.round((dnHistory[i] / maxVal) * 28));
+    g.children[0].style.height = upH + 'px';
+    g.children[1].style.height = dnH + 'px';
+  });
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function fmtBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['B','KB','MB','GB','TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function fmtSpeed(bps) {
+  if (bps < 1024) return bps.toFixed(0) + ' B/s';
+  if (bps < 1048576) return (bps/1024).toFixed(1) + ' KB/s';
+  return (bps/1048576).toFixed(2) + ' MB/s';
+}
+
+function fmtUptime(sec) {
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const big = d > 0 ? d + 'd ' + h + 'h' : h + 'h ' + m + 'm';
+  const sub = d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
+  return { big, sub };
+}
+
+function tempColor(t) {
+  if (t >= 80) return 'val-danger';
+  if (t >= 65) return 'val-hot';
+  if (t >= 55) return 'val-warn';
+  return 'val-ok';
+}
+
+function cpuColor(p) {
+  if (p >= 90) return 'val-danger';
+  if (p >= 70) return 'val-warn';
+  if (p >= 50) return 'val-hot';
+  return 'val-ok';
+}
+
+const PROC_COLORS = ['#60a5fa','#a78bfa','#2dd4bf','#fb923c','#34d399','#f87171','#fbbf24'];
+const PROC_FILLS  = ['fill-blue','fill-purple','fill-teal','fill-orange','fill-green','fill-red'];
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(data) {
+  // CPU
+  const cpu = data.cpu;
+  const cpuPct = Math.round(cpu.usage_pct);
+  document.getElementById('cpu-model').textContent = cpu.model;
+  document.getElementById('cpu-cores').textContent = cpu.cores;
+  document.getElementById('cpu-freq').textContent = cpu.freq_ghz.toFixed(2) + ' GHz';
+  document.getElementById('cpu-usage-val').textContent = cpuPct + '%';
+  document.getElementById('cpu-usage-val').className = 'stat-val ' + cpuColor(cpuPct);
+  document.getElementById('cpu-usage-bar').style.width = cpuPct + '%';
+  document.getElementById('cpu-usage-mid').textContent = cpuPct + '%';
+
+  const cTemp = Math.round(cpu.temp_c);
+  document.getElementById('cpu-temp-val').textContent = cTemp + '°C';
+  document.getElementById('cpu-temp-val').className = 'stat-val ' + tempColor(cTemp);
+  document.getElementById('cpu-temp-bar').style.width = Math.min(cTemp, 100) + '%';
+  document.getElementById('cpu-temp-mid').textContent = cTemp + '°C';
+
+  document.getElementById('cpu-load').textContent =
+    cpu.load_avg[0] + ' / ' + cpu.load_avg[1] + ' / ' + cpu.load_avg[2];
+
+  // Memory
+  const mem = data.memory;
+  const ramPct = Math.round((mem.used_mib / mem.total_mib) * 100);
+  const ramUsedStr = mem.used_mib >= 1024
+    ? (mem.used_mib/1024).toFixed(2) + ' GiB'
+    : mem.used_mib.toFixed(2) + ' MiB';
+  const ramTotalStr = (mem.total_mib/1024).toFixed(2) + ' GiB';
+  document.getElementById('ram-val').textContent = ramUsedStr + ' / ' + ramTotalStr;
+  document.getElementById('ram-bar').style.width = ramPct + '%';
+  document.getElementById('ram-pct').textContent = ramPct + '%';
+
+  const swapPct = mem.swap_total_mib > 0 ? Math.round((mem.swap_used_mib/mem.swap_total_mib)*100) : 0;
+  if (mem.swap_total_mib === 0) {
+    document.getElementById('swap-val').textContent = 'Disabled';
+    document.getElementById('swap-bar').style.width = '0%';
+    document.getElementById('swap-pct').textContent = '--%';
+  } else {
+    document.getElementById('swap-val').textContent =
+      mem.swap_used_mib.toFixed(0) + ' MiB / ' + (mem.swap_total_mib/1024).toFixed(1) + ' GiB';
+    document.getElementById('swap-bar').style.width = swapPct + '%';
+    document.getElementById('swap-pct').textContent = swapPct + '%';
+  }
+
+  // Disk
+  const disk = data.disk;
+  const diskPct = Math.round((disk.used_gib / disk.total_gib) * 100);
+  document.getElementById('disk-val').textContent =
+    disk.used_gib.toFixed(2) + ' GiB / ' + disk.total_gib.toFixed(2) + ' GiB';
+  document.getElementById('disk-bar').style.width = diskPct + '%';
+  document.getElementById('disk-pct').textContent = diskPct + '%';
+
+  const dTemp = Math.round(disk.temp_c);
+  document.getElementById('disk-temp-val').textContent = dTemp + '°C';
+  document.getElementById('disk-temp-val').className = 'stat-val ' + tempColor(dTemp);
+  document.getElementById('disk-temp-bar').style.width = Math.min(Math.round(dTemp/80*100),100) + '%';
+  document.getElementById('disk-temp-mid').textContent = dTemp + '°C';
+
+  // Network
+  const net = data.network;
+  document.getElementById('net-iface').textContent = net.iface;
+  document.getElementById('net-up-val').textContent = fmtSpeed(net.up_bps);
+  document.getElementById('net-dn-val').textContent = fmtSpeed(net.dn_bps);
+  document.getElementById('local-ip').textContent = net.local_ip;
+  document.getElementById('net-total-up').textContent = fmtBytes(net.total_up_bytes, 2);
+  document.getElementById('net-total-dn').textContent = fmtBytes(net.total_dn_bytes, 2);
+  document.getElementById('net-speed-cap').textContent = net.iface;
+  updateChart(net.up_bps, net.dn_bps);
+
+  // System
+  const sys = data.system;
+  const upObj = fmtUptime(sys.uptime_sec);
+  document.getElementById('uptime-display').textContent = 'Uptime: ' + upObj.big;
+  document.getElementById('uptime-big').textContent = upObj.big;
+  document.getElementById('uptime-sub').textContent = upObj.sub;
+  document.getElementById('hostname-display').textContent = sys.hostname;
+  document.getElementById('sys-host').textContent = sys.hostname;
+  document.getElementById('sys-os').textContent = sys.os;
+  document.getElementById('os-display').textContent = sys.os.split(' ').slice(0,2).join(' ');
+  document.getElementById('sys-kernel').textContent = sys.kernel;
+  document.getElementById('sys-pkgs').textContent = sys.packages;
+  document.getElementById('sys-shell').textContent = sys.shell;
+  document.getElementById('gpu-name').textContent = sys.gpu;
+  document.getElementById('display-res').textContent = sys.display_res;
+  document.getElementById('display-hz').textContent = sys.display_hz + ' Hz';
+
+  // Battery
+  const bat = data.battery;
+  document.getElementById('bat-pct').textContent = bat.pct + '%';
+  document.getElementById('bat-fill').style.width = bat.pct + '%';
+  const batFill = document.getElementById('bat-fill');
+  batFill.className = 'battery-fill-inner ' + (bat.pct > 20 ? 'fill-green' : 'fill-red');
+  document.getElementById('bat-status').textContent = bat.status;
+  document.getElementById('bat-status').style.color = bat.pct > 20 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('bat-sub').textContent = bat.plugged ? 'AC Connected' : 'On Battery';
+
+  // Processes
+  const procs = (data.processes || []).slice(0, 6);
+  const procList = document.getElementById('proc-list');
+  procList.innerHTML = '';
+  procs.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'proc-row';
+    const maxCPU = Math.max(...procs.map(x => x.cpu));
+    const pct = maxCPU > 0 ? Math.round((p.cpu / maxCPU) * 100) : 0;
+    const memStr = p.mem_mb >= 1024 ? (p.mem_mb/1024).toFixed(1)+' GB' : p.mem_mb.toFixed(0)+' MB';
+    row.innerHTML = `
+      <div class="proc-dot" style="background:${PROC_COLORS[i%PROC_COLORS.length]}"></div>
+      <span class="proc-name">${p.name}</span>
+      <span class="proc-cpu-val">${p.cpu.toFixed(1)}%</span>
+      <span class="proc-mem-val">${memStr}</span>
+      <div class="proc-mini"><div class="proc-mini-fill ${PROC_FILLS[i%PROC_FILLS.length]}" style="width:${pct}%"></div></div>
+    `;
+    procList.appendChild(row);
+  });
+}
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+function tickClock() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent =
+    now.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('live-date').textContent =
+    now.toLocaleDateString('id-ID', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ============================================================
+   FETCH LOOP
+   ============================================================ */
+const startTime = Date.now();
+let lastData = null;
+let apiOk = false;
+
+async function fetchStats() {
+  try {
+    const res = await fetch(CONFIG.apiUrl, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    apiOk = true;
+    document.getElementById('err-banner').style.display = 'none';
+    document.getElementById('status-dot').style.background = 'var(--green)';
+    document.getElementById('status-text').textContent = 'Online';
+    lastData = data;
+    render(data);
+  } catch (e) {
+    if (!apiOk && CONFIG.demoMode) {
+      document.getElementById('err-banner').style.display = 'block';
+      render(getDemoData());
+    } else {
+      document.getElementById('status-dot').style.background = 'var(--red)';
+      document.getElementById('status-text').textContent = 'API Offline';
+    }
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+initChart();
+
+const loading = document.getElementById('loading');
+const app = document.getElementById('app');
+
+document.getElementById('load-msg').textContent = 'Fetching system stats...';
+fetchStats().then(() => {
+  loading.style.opacity = '0';
+  setTimeout(() => { loading.style.display = 'none'; }, 500);
+  app.style.opacity = '1';
+});
+
+setInterval(fetchStats, CONFIG.refreshInterval);
+</script>
+
+</body>
+</html>
