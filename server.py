@@ -274,20 +274,46 @@ def get_system():
 # ── Processes ─────────────────────────────────────────────────
 def get_processes():
     procs = []
+
     try:
-        out = cmd(["ps", "aux", "--no-headers", "--sort=-%cpu"])
-        for line in out.splitlines()[:8]:
-            parts = line.split(None, 10)
-            if len(parts) < 11:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
                 continue
-            name = os.path.basename(parts[10].split()[0]).replace("(", "").replace(")", "")[:16]
-            procs.append({
-                "name":   name,
-                "cpu":    float(parts[2]),
-                "mem_mb": round(float(parts[3]) / 100 * get_memory()["total_mib"], 1),
-            })
-    except Exception:
-        pass
+
+            try:
+                cmdline = read_file(f"/proc/{pid}/cmdline")
+                statm   = read_file(f"/proc/{pid}/statm")
+                stat    = read_file(f"/proc/{pid}/stat")
+
+                if not cmdline:
+                    continue
+
+                name = os.path.basename(cmdline.split("\x00")[0])[:16]
+
+                # memory
+                mem_pages = int(statm.split()[1])
+                mem_mb = round((mem_pages * 4096) / 1024 / 1024, 1)
+
+                # cpu ticks
+                parts = stat.split()
+                utime = int(parts[13])
+                stime = int(parts[14])
+                cpu = round((utime + stime) / 100, 1)
+
+                procs.append({
+                    "name": name,
+                    "cpu": cpu,
+                    "mem_mb": mem_mb,
+                })
+
+            except Exception:
+                continue
+
+        procs.sort(key=lambda x: x["cpu"], reverse=True)
+
+    except Exception as e:
+        print("process error:", e)
+
     return procs[:6]
 
 # ── Main collector ────────────────────────────────────────────
